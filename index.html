@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANIMALVERSE — 동물 메타버스</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Apple SD Gothic Neo', 'Pretendard', 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    background: linear-gradient(160deg, #FDF6EC 0%, #FCE8EF 45%, #E8F4FD 100%);
+    color: #3A3335;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 48px 24px;
+  }
+  h1 { font-size: 2.6rem; letter-spacing: 2px; }
+  h1 .paw { font-size: 2rem; }
+  .subtitle { margin-top: 10px; color: #8A7A80; font-size: 1.05rem; text-align: center; line-height: 1.6; }
+  .subtitle b { color: #E86A92; }
+  .cards {
+    margin-top: 44px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 22px;
+    width: 100%; max-width: 1180px;
+  }
+  a.card {
+    text-decoration: none; color: inherit;
+    background: #FFFFFFDD;
+    border-radius: 20px;
+    padding: 26px 24px;
+    box-shadow: 0 6px 22px rgba(90, 60, 80, .10);
+    border: 2px solid transparent;
+    transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  a.card:hover { transform: translateY(-6px); border-color: #F4739C; box-shadow: 0 14px 30px rgba(90, 60, 80, .16); }
+  .badge {
+    align-self: flex-start;
+    font-size: .74rem; font-weight: 700; letter-spacing: 1px;
+    padding: 4px 10px; border-radius: 999px; color: #fff;
+  }
+  .b3d     { background: #7C6AE8; }
+  .bpixel  { background: #4CAF6D; }
+  .bpastel { background: #F4739C; }
+  .biso    { background: #F0A03C; }
+  .card h2 { font-size: 1.3rem; }
+  .card p  { font-size: .92rem; color: #7A6B70; line-height: 1.55; }
+  .card .emoji { font-size: 2.2rem; }
+  footer { margin-top: 52px; color: #A79AA0; font-size: .85rem; text-align: center; line-height: 1.7; }
+  code { background: #F3E9EE; padding: 2px 7px; border-radius: 6px; font-size: .82rem; }
+</style>
+</head>
+<body>
+  <h1><span class="paw">🐾</span> ANIMALVERSE <span class="paw">🐾</span></h1>
+  <p class="subtitle">
+    동물 친구들로 가득 찬 메타버스 — 같은 세계, <b>네 가지 아트 스타일</b>.<br>
+    선택 가능한 동물 <b>20종</b>(🦩 플라밍고 포함) + 마을 NPC <b>8명</b>. 마음에 드는 버전을 골라 입장하세요.
+  </p>
+
+  <div class="cards">
+    <a class="card" href="versions/3d/index.html">
+      <span class="badge b3d">3D · THREE.JS</span>
+      <span class="emoji">🌍</span>
+      <h2>로우폴리 아일랜드</h2>
+      <p>낮은 폴리곤 3D 섬 마을. 카메라가 따라다니는 3인칭 시점으로 광장·호수·온천을 누벼요.</p>
+    </a>
+    <a class="card" href="versions/2d-pixel/index.html">
+      <span class="badge bpixel">2D · PIXEL RPG</span>
+      <span class="emoji">🕹️</span>
+      <h2>도트 빌리지</h2>
+      <p>레트로 16비트 탑다운 RPG 감성. 픽셀 타일맵 위를 도트 동물로 돌아다녀요.</p>
+    </a>
+    <a class="card" href="versions/2d-pastel/index.html">
+      <span class="badge bpastel">2D · PASTEL</span>
+      <span class="emoji">🌸</span>
+      <h2>파스텔 파크</h2>
+      <p>말랑말랑 파스텔 벡터 스타일. 머리 큰 치비 동물들이 통통 튀며 산책하는 공원.</p>
+    </a>
+    <a class="card" href="versions/2d-iso/index.html">
+      <span class="badge biso">2D · ISOMETRIC</span>
+      <span class="emoji">🏝️</span>
+      <h2>아이소 디오라마</h2>
+      <p>비스듬히 내려다보는 아이소메트릭 디오라마. 미니어처 장난감 마을 같은 분위기.</p>
+    </a>
+  </div>
+
+  <footer>
+    이동: <code>WASD</code> / 방향키 · NPC 대화: <code>E</code><br>
+    3D 버전은 로컬에서 열 때 서버가 필요해요: <code>python3 -m http.server</code> 후 <code>localhost:8000</code> 접속
+  </footer>
+</body>
+</html>
