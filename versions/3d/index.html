@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANIMALVERSE — 로우폴리 아일랜드</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+    background: #FDEBF1;
+    color: #4a3540;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #gl { position: fixed; inset: 0; display: block; }
+  .hidden { display: none !important; }
+
+  /* ── 캐릭터 선택 화면 ─────────────────────────── */
+  #select-screen { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+  #select-title {
+    position: absolute; top: 26px; left: 34px;
+    pointer-events: none;
+  }
+  #select-title h1 {
+    font-size: 34px; letter-spacing: 2px; color: #d6497e;
+    text-shadow: 0 2px 0 #fff;
+  }
+  #select-title p { margin-top: 6px; font-size: 14px; color: #9c6f83; }
+
+  #char-panel {
+    position: absolute; top: 20px; right: 20px; bottom: 20px;
+    width: 400px; pointer-events: auto;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(10px);
+    border-radius: 22px;
+    box-shadow: 0 10px 34px rgba(180, 90, 130, 0.22);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.9);
+  }
+  #char-panel h2 {
+    padding: 18px 22px 10px; font-size: 17px; color: #b04a74;
+  }
+  #char-grid {
+    flex: 1; overflow-y: auto; padding: 6px 16px 16px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    align-content: start;
+  }
+  #char-grid::-webkit-scrollbar { width: 8px; }
+  #char-grid::-webkit-scrollbar-thumb { background: #f0bcd0; border-radius: 4px; }
+  .char-card {
+    background: #fff; border: 2px solid #f3dbe5; border-radius: 16px;
+    padding: 8px 4px 7px; text-align: center; cursor: pointer;
+    transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  }
+  .char-card:hover {
+    transform: translateY(-3px) scale(1.03);
+    border-color: #f5a3c0;
+    box-shadow: 0 6px 14px rgba(214, 73, 126, 0.18);
+  }
+  .char-card.selected {
+    border-color: #e2528a;
+    background: #fff0f6;
+    box-shadow: 0 0 0 3px rgba(226, 82, 138, 0.22);
+  }
+  .char-card img { width: 76px; height: 76px; display: block; margin: 0 auto; image-rendering: auto; }
+  .char-card .cname { font-size: 13px; font-weight: 700; color: #5a3d4b; margin-top: 2px; }
+  .char-card .cemoji { font-size: 10px; opacity: 0.75; }
+
+  #info-card {
+    position: absolute; left: 34px; bottom: 34px;
+    width: 340px; pointer-events: auto;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(10px);
+    border-radius: 20px; padding: 20px 24px;
+    box-shadow: 0 10px 30px rgba(180, 90, 130, 0.25);
+    border: 2px solid rgba(255,255,255,0.9);
+  }
+  #info-name { font-size: 26px; font-weight: 800; color: #3f2a33; }
+  #info-name .en { font-size: 13px; font-weight: 500; color: #b78ca0; margin-left: 8px; }
+  #info-intro { margin-top: 8px; font-size: 14px; line-height: 1.55; color: #6d5260; min-height: 42px; }
+  #enter-btn {
+    margin-top: 14px; width: 100%;
+    border: none; cursor: pointer;
+    background: linear-gradient(135deg, #f4739c, #e2528a);
+    color: #fff; font-size: 17px; font-weight: 800;
+    padding: 13px 0; border-radius: 14px;
+    letter-spacing: 4px;
+    box-shadow: 0 6px 16px rgba(226, 82, 138, 0.4);
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+    font-family: inherit;
+  }
+  #enter-btn:hover { transform: translateY(-2px); box-shadow: 0 9px 20px rgba(226, 82, 138, 0.5); }
+  #enter-btn:active { transform: translateY(0); }
+
+  /* ── 월드 HUD ─────────────────────────────── */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+  #zone-chip {
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(6px);
+    padding: 8px 22px; border-radius: 999px;
+    font-size: 15px; font-weight: 700; color: #5a3d4b;
+    box-shadow: 0 4px 14px rgba(90, 61, 75, 0.18);
+  }
+  #controls-hint {
+    position: absolute; left: 20px; bottom: 18px;
+    background: rgba(46, 33, 40, 0.55); color: #ffe9f2;
+    padding: 9px 16px; border-radius: 12px;
+    font-size: 12.5px; line-height: 1.6;
+  }
+  #interact-hint {
+    position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
+    background: rgba(255, 255, 255, 0.92);
+    padding: 10px 22px; border-radius: 999px;
+    font-size: 15px; font-weight: 700; color: #3f2a33;
+    box-shadow: 0 6px 16px rgba(90, 61, 75, 0.25);
+    animation: bob 1.2s ease-in-out infinite;
+  }
+  #interact-hint .key {
+    display: inline-block; background: #e2528a; color: #fff;
+    border-radius: 7px; padding: 1px 9px; margin-right: 8px;
+    font-weight: 800;
+  }
+  @keyframes bob { 0%,100% { transform: translate(-50%, 0); } 50% { transform: translate(-50%, -5px); } }
+
+  #dialogue {
+    position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+    width: min(640px, 90vw); pointer-events: auto;
+    background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px);
+    border-radius: 20px; padding: 18px 26px 16px;
+    box-shadow: 0 14px 36px rgba(60, 35, 48, 0.3);
+    border: 2px solid #f6cfdf;
+  }
+  #dlg-name { font-size: 15px; font-weight: 800; color: #d6497e; }
+  #dlg-name .role { font-size: 12px; color: #ad8496; font-weight: 600; margin-left: 8px; }
+  #dlg-text { margin-top: 8px; font-size: 16px; line-height: 1.65; color: #43303a; min-height: 48px; }
+  #dlg-next { text-align: right; font-size: 12px; color: #c797ac; margin-top: 4px; }
+  #dlg-next .key { background: #f0d3df; border-radius: 5px; padding: 0 6px; color: #8a5a70; font-weight: 700; }
+
+  #toast {
+    position: absolute; top: 84px; left: 50%; transform: translateX(-50%);
+    background: rgba(63, 42, 51, 0.82); color: #fff;
+    padding: 12px 34px; border-radius: 999px;
+    font-size: 19px; font-weight: 800; letter-spacing: 1px;
+    opacity: 0; transition: opacity 0.35s ease, top 0.35s ease;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; top: 96px; }
+  #toast .sub { display: block; font-size: 12px; font-weight: 500; opacity: 0.8; text-align: center; margin-top: 2px; letter-spacing: 0; }
+
+  #loading {
+    position: fixed; inset: 0; z-index: 50;
+    background: #FDEBF1; display: flex; align-items: center; justify-content: center;
+    flex-direction: column; gap: 14px;
+    font-size: 16px; color: #b04a74; font-weight: 700;
+    transition: opacity 0.4s ease;
+  }
+  #loading .spin {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 5px solid #f6cfdf; border-top-color: #e2528a;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<div id="loading"><div class="spin"></div>섬을 만드는 중…</div>
+
+<div id="select-screen" class="hidden">
+  <div id="select-title">
+    <h1>ANIMALVERSE</h1>
+    <p>로우폴리 아일랜드 · 함께 살아갈 동물을 골라 주세요</p>
+  </div>
+  <div id="char-panel">
+    <h2>동물 친구 20종</h2>
+    <div id="char-grid"></div>
+  </div>
+  <div id="info-card">
+    <div id="info-name"></div>
+    <div id="info-intro"></div>
+    <button id="enter-btn">입 장</button>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div id="zone-chip">섬 어딘가</div>
+  <div id="controls-hint">WASD / 방향키 — 이동<br>E — 대화</div>
+  <div id="interact-hint" class="hidden"><span class="key">E</span><span id="interact-text">대화</span></div>
+  <div id="dialogue" class="hidden">
+    <div id="dlg-name"></div>
+    <div id="dlg-text"></div>
+    <div id="dlg-next"><span class="key">E</span> 다음</div>
+  </div>
+  <div id="toast"></div>
+</div>
+
+<script src="../../shared/characters.js"></script>
+<script src="../../shared/npcs.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANIMALVERSE — 아이소 디오라마</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── 캐릭터 선택 화면 ───────────────────────── -->
+<div id="select-screen">
+  <header class="sel-head">
+    <h1>ANIMALVERSE</h1>
+    <p class="sub">아이소 디오라마 — 미니어처 마을에서 살아갈 동물을 골라 주세요</p>
+  </header>
+  <div id="char-grid"></div>
+  <footer id="sel-bar">
+    <div id="sel-info">
+      <div id="sel-name">동물을 선택해 주세요</div>
+      <div id="sel-intro"></div>
+    </div>
+    <button id="enter-btn" disabled>입장</button>
+  </footer>
+</div>
+
+<!-- ── 월드 ───────────────────────── -->
+<div id="world-screen" class="hidden">
+  <canvas id="game"></canvas>
+  <div id="hud-guide">이동 <b>WASD / 방향키</b> &nbsp;·&nbsp; 대화 <b>E</b></div>
+  <div id="zone-toast" class="hidden">
+    <div class="toast-deco">✦</div>
+    <div id="toast-name"></div>
+    <div id="toast-hint"></div>
+  </div>
+  <div id="dialog-box" class="hidden">
+    <div id="dlg-who"></div>
+    <div id="dlg-text"></div>
+    <div id="dlg-next">E — 다음 ▸</div>
+  </div>
+</div>
+
+<script src="../../shared/characters.js"></script>
+<script src="../../shared/npcs.js"></script>
+<script src="js/iso.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/world.js"></script>
+<script src="js/game.js"></script>
+<script src="js/select.js"></script>
+</body>
+</html>

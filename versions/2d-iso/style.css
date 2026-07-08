@@ -1,0 +1,114 @@
+/* ANIMALVERSE — 아이소 디오라마 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", sans-serif;
+  background: linear-gradient(180deg, #cfe9f2 0%, #e8ecdf 55%, #f4e9d6 100%);
+  color: #3a3040;
+}
+.hidden { display: none !important; }
+
+/* ── 선택 화면 ─────────────────────── */
+#select-screen {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(255,255,255,.8), rgba(255,255,255,0) 60%),
+    linear-gradient(180deg, #cde8f1 0%, #e9edda 60%, #f6ead4 100%);
+}
+.sel-head { text-align: center; padding: 26px 12px 10px; flex: 0 0 auto; }
+.sel-head h1 {
+  font-size: 34px; letter-spacing: 10px; color: #4a3b52;
+  text-shadow: 0 2px 0 rgba(255,255,255,.9);
+}
+.sel-head .sub { margin-top: 6px; font-size: 14px; color: #7c6f86; letter-spacing: 1px; }
+
+#char-grid {
+  flex: 1 1 auto; overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 14px; padding: 18px 34px 24px; align-content: start;
+}
+.char-card {
+  position: relative; cursor: pointer; text-align: center;
+  border-radius: 16px; padding: 6px 4px 10px;
+  background: rgba(255,255,255,.42);
+  border: 2px solid rgba(255,255,255,.65);
+  box-shadow: 0 4px 14px rgba(90,70,60,.10);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease;
+}
+.char-card:hover { transform: translateY(-5px); box-shadow: 0 10px 22px rgba(90,70,60,.18); background: rgba(255,255,255,.62); }
+.char-card.selected {
+  border-color: #f4739c; background: rgba(255,244,248,.85);
+  box-shadow: 0 10px 26px rgba(244,115,156,.30);
+  transform: translateY(-5px);
+}
+.char-card canvas { width: 132px; height: 148px; display: block; margin: 0 auto; }
+.char-card .cname { font-size: 14px; font-weight: 700; color: #4a3b52; margin-top: 2px; }
+.char-card .cname .em { font-size: 11px; opacity: .85; margin-left: 3px; }
+
+#sel-bar {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 18px;
+  padding: 14px 30px; background: rgba(255,255,255,.72);
+  border-top: 1px solid rgba(160,140,150,.25);
+  backdrop-filter: blur(6px);
+}
+#sel-info { flex: 1 1 auto; min-width: 0; }
+#sel-name { font-size: 18px; font-weight: 800; color: #4a3b52; }
+#sel-intro { font-size: 13px; color: #82738c; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#enter-btn {
+  flex: 0 0 auto; font-family: inherit; font-size: 17px; font-weight: 800; letter-spacing: 4px;
+  padding: 12px 46px; border: none; border-radius: 999px; cursor: pointer;
+  color: #fff; background: linear-gradient(135deg, #f4739c, #f7a8c2);
+  box-shadow: 0 6px 16px rgba(244,115,156,.4);
+  transition: transform .15s ease, box-shadow .15s ease, filter .15s ease;
+}
+#enter-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(244,115,156,.5); }
+#enter-btn:disabled { filter: grayscale(.8); opacity: .5; cursor: default; box-shadow: none; }
+
+/* ── 월드 ─────────────────────── */
+#world-screen { position: absolute; inset: 0; }
+#game { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+
+#hud-guide {
+  position: absolute; left: 16px; top: 14px;
+  font-size: 12.5px; color: #574a5e; letter-spacing: .5px;
+  background: rgba(255,255,255,.66); border: 1px solid rgba(255,255,255,.8);
+  border-radius: 999px; padding: 7px 16px;
+  box-shadow: 0 3px 10px rgba(80,60,60,.12);
+  backdrop-filter: blur(4px);
+}
+#hud-guide b { color: #d84f80; }
+
+#zone-toast {
+  position: absolute; top: 44px; left: 50%; transform: translateX(-50%);
+  text-align: center; pointer-events: none;
+  padding: 12px 44px;
+  background: rgba(253, 250, 244, .88);
+  border: 1px solid rgba(200,170,140,.5);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(90,60,50,.18), inset 0 0 0 3px rgba(220,195,160,.28);
+  animation: toastIn .5s ease both;
+}
+#zone-toast.fadeout { animation: toastOut .6s ease both; }
+.toast-deco { font-size: 11px; color: #cfa14f; letter-spacing: 8px; }
+#toast-name { font-size: 22px; font-weight: 800; letter-spacing: 6px; color: #574632; margin: 2px 0 3px; }
+#toast-hint { font-size: 12px; color: #93805f; letter-spacing: 1px; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(-14px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+@keyframes toastOut { from { opacity: 1; } to { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+
+#dialog-box {
+  position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%);
+  width: min(680px, calc(100% - 48px));
+  background: rgba(255,253,248,.95);
+  border: 2px solid rgba(214,186,150,.7);
+  border-radius: 16px;
+  box-shadow: 0 12px 34px rgba(80,60,50,.25);
+  padding: 16px 22px 12px;
+  animation: dlgIn .18s ease both;
+}
+@keyframes dlgIn { from { opacity: 0; transform: translateX(-50%) translateY(10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+#dlg-who { font-size: 14px; font-weight: 800; color: #b3577c; margin-bottom: 6px; }
+#dlg-text { font-size: 16px; line-height: 1.55; color: #453a4a; min-height: 44px; }
+#dlg-next { text-align: right; font-size: 12px; color: #a3927a; margin-top: 6px; animation: blinkNext 1.2s ease-in-out infinite; }
+@keyframes blinkNext { 0%,100% { opacity: .45; } 50% { opacity: 1; } }

@@ -1,0 +1,126 @@
+/* ANIMALVERSE · 파스텔 파크 */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  font-family: "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+  background: linear-gradient(165deg, #FDF3F8 0%, #F3E9FB 50%, #E8F5FD 100%);
+  color: #5b4a55;
+  -webkit-user-select: none; user-select: none;
+}
+.hidden { display: none !important; }
+
+/* ── 선택 화면 ─────────────────────── */
+#select {
+  position: fixed; inset: 0; z-index: 20;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 34px 20px 20px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255,255,255,.7), transparent 55%),
+    linear-gradient(165deg, #FDF3F8 0%, #F6ECFB 45%, #E8F5FD 100%);
+}
+#select h1 {
+  font-size: 32px; letter-spacing: 4px; color: #ef7bab;
+  text-shadow: 0 2px 0 #fff, 0 4px 12px rgba(239,123,171,.25);
+}
+#select .sub { margin-top: 8px; font-size: 14px; color: #a98fb8; }
+
+#grid {
+  margin-top: 24px; width: min(1040px, 96vw);
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 16px; max-height: 56vh; overflow-y: auto; padding: 8px 10px;
+}
+#grid::-webkit-scrollbar { width: 10px; }
+#grid::-webkit-scrollbar-thumb { background: #f3c4dc; border-radius: 6px; }
+.card {
+  background: rgba(255,255,255,.7);
+  border: 2.5px solid rgba(255,255,255,.9);
+  border-radius: 22px; padding: 12px 8px 10px; text-align: center;
+  cursor: pointer; box-shadow: 0 6px 16px rgba(200,140,180,.14);
+  transition: transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s ease, border-color .18s ease;
+}
+.card:hover { transform: translateY(-6px) scale(1.03); box-shadow: 0 12px 24px rgba(200,140,180,.24); }
+.card.sel {
+  border-color: #f6a6c8; background: #fff;
+  box-shadow: 0 12px 28px rgba(244,115,156,.32);
+  transform: translateY(-6px);
+}
+.card canvas { width: 120px; height: 130px; display: block; margin: 0 auto; }
+.card .nm { font-size: 14px; font-weight: 700; color: #6b5560; margin-top: 2px; }
+.card .nm .em { font-size: 12px; margin-left: 3px; opacity: .8; }
+
+#preview {
+  margin-top: auto; width: min(1040px, 96vw);
+  display: flex; align-items: center; gap: 20px;
+  background: rgba(255,255,255,.78); backdrop-filter: blur(8px);
+  border: 2px solid rgba(255,255,255,.9); border-radius: 26px;
+  padding: 16px 26px; box-shadow: 0 10px 30px rgba(200,140,180,.2);
+}
+#pv-canvas { width: 96px; height: 110px; flex: 0 0 auto; }
+#pv-info { flex: 1 1 auto; min-width: 0; }
+#pv-name { font-size: 22px; font-weight: 800; color: #4d3a44; }
+#pv-name .en { font-size: 13px; font-weight: 500; color: #bd9cae; margin-left: 8px; }
+#pv-intro { margin-top: 6px; font-size: 14px; color: #7d6572; line-height: 1.55; min-height: 32px; }
+#enter {
+  flex: 0 0 auto; cursor: pointer; font-family: inherit;
+  font-size: 17px; font-weight: 800; letter-spacing: 5px; color: #fff;
+  background: linear-gradient(135deg, #f9a0c4, #ef7bab);
+  border: none; border-radius: 999px; padding: 14px 40px;
+  box-shadow: 0 8px 20px rgba(239,123,171,.4);
+  transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+}
+#enter:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 12px 26px rgba(239,123,171,.5); }
+#enter:disabled { filter: grayscale(.7); opacity: .55; cursor: default; box-shadow: none; }
+
+/* ── 월드 ─────────────────────── */
+#game { position: fixed; inset: 0; display: block; width: 100vw; height: 100vh; }
+
+#hud { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
+#guide {
+  position: absolute; left: 18px; top: 16px;
+  font-size: 13px; color: #7a6472;
+  background: rgba(255,255,255,.72); border: 2px solid rgba(255,255,255,.9);
+  border-radius: 999px; padding: 8px 18px; backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(200,150,180,.18);
+}
+#guide b { color: #ef7bab; }
+#zone {
+  position: absolute; top: 40px; left: 50%; transform: translateX(-50%) translateY(-10px);
+  text-align: center; opacity: 0; transition: opacity .4s ease, transform .4s ease;
+}
+#zone.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#zone .zn {
+  font-size: 24px; font-weight: 800; letter-spacing: 3px; color: #fff;
+  background: linear-gradient(135deg, #f9a0c4, #c9a0f0);
+  display: inline-block; padding: 8px 30px; border-radius: 999px;
+  box-shadow: 0 8px 22px rgba(200,130,190,.35);
+}
+#zone .zh { display: block; margin-top: 8px; font-size: 13px; color: #9c82ab; }
+
+#interact {
+  position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%);
+  font-size: 14px; font-weight: 700; color: #fff;
+  background: linear-gradient(135deg, #f9a0c4, #ef7bab);
+  padding: 9px 22px; border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(239,123,171,.4);
+  animation: bob 1.1s ease-in-out infinite;
+}
+#interact .k { background: #fff; color: #ef7bab; border-radius: 8px; padding: 1px 9px; margin-right: 8px; font-weight: 800; }
+@keyframes bob { 0%,100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-6px); } }
+
+#dialog {
+  position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%);
+  width: min(660px, 92vw); pointer-events: auto;
+  background: rgba(255,255,255,.96); backdrop-filter: blur(8px);
+  border: 3px solid #fbd3e5; border-radius: 26px;
+  padding: 20px 28px 16px; box-shadow: 0 16px 40px rgba(190,110,150,.28);
+}
+#dialog::after {
+  content: ''; position: absolute; left: 60px; bottom: -16px;
+  border: 10px solid transparent; border-top-color: rgba(255,255,255,.96);
+  filter: drop-shadow(0 3px 2px rgba(190,110,150,.12));
+}
+#dlg-name { font-size: 16px; font-weight: 800; color: #ef7bab; }
+#dlg-name .rl { font-size: 12px; color: #b79cae; font-weight: 600; margin-left: 8px; }
+#dlg-text { margin-top: 10px; font-size: 16px; line-height: 1.7; color: #52424c; min-height: 52px; }
+#dlg-next { text-align: right; font-size: 12px; color: #c9a5b8; margin-top: 4px; }
+#dlg-next .k { background: #fbe0ec; color: #d06592; border-radius: 6px; padding: 1px 7px; font-weight: 700; }
