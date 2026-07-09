@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANIMALVERSE — 토이 아일랜드 (Babylon.js)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    font-family: "Apple SD Gothic Neo", "Pretendard", "Malgun Gothic", sans-serif;
+    background: #0d1830; color: #eef4ff; user-select: none; -webkit-user-select: none;
+  }
+  #gl { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; outline: none; touch-action: none; }
+  .hidden { display: none !important; }
+
+  /* 이름 라벨 (DOM 투영) */
+  #labels { position: fixed; inset: 0; pointer-events: none; z-index: 8; overflow: hidden; }
+  .nlabel {
+    position: absolute; transform: translate(-50%, -100%);
+    font-size: 13px; font-weight: 700; white-space: nowrap;
+    padding: 3px 11px; border-radius: 999px;
+    background: rgba(14,24,48,0.72); backdrop-filter: blur(3px);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(120,200,255,0.3);
+  }
+  .nlabel.player { color: #ffe27a; box-shadow: 0 3px 12px rgba(0,0,0,.4), inset 0 0 0 1.5px rgba(255,210,90,.6); }
+  .nlabel .rl { color: #8fd0ff; font-weight: 500; font-size: 11px; margin-left: 6px; }
+
+  /* 선택 화면 */
+  #select { position: fixed; inset: 0; z-index: 20; pointer-events: none; }
+  #sel-title { position: absolute; top: 30px; left: 38px; }
+  #sel-title h1 {
+    font-size: 34px; letter-spacing: 4px;
+    background: linear-gradient(120deg, #7ee6ff, #b69cff, #ff9ecb);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 2px 8px rgba(120,180,255,.4));
+  }
+  #sel-title p { margin-top: 8px; font-size: 14px; color: #9fb4d8; }
+
+  #char-panel {
+    position: absolute; top: 20px; right: 20px; bottom: 20px; width: 400px;
+    pointer-events: auto; display: flex; flex-direction: column;
+    background: rgba(16,28,56,0.66); backdrop-filter: blur(12px);
+    border: 1px solid rgba(120,180,255,0.22); border-radius: 22px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  #char-panel h2 { padding: 18px 22px 10px; font-size: 16px; color: #9fd0ff; letter-spacing: 1px; }
+  #char-grid {
+    flex: 1; overflow-y: auto; padding: 6px 16px 16px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; align-content: start;
+  }
+  #char-grid::-webkit-scrollbar { width: 8px; }
+  #char-grid::-webkit-scrollbar-thumb { background: #3a5488; border-radius: 4px; }
+  .ccard {
+    background: rgba(30,46,84,0.7); border: 2px solid transparent; border-radius: 16px;
+    padding: 10px 4px 8px; text-align: center; cursor: pointer;
+    transition: transform .14s ease, border-color .14s ease, background .14s ease;
+  }
+  .ccard:hover { transform: translateY(-3px); background: rgba(44,64,110,0.8); border-color: #6fb8ff; }
+  .ccard.sel { border-color: #7ee6ff; background: rgba(50,80,130,0.9); box-shadow: 0 0 18px rgba(126,230,255,.35); }
+  .ccard .ce { font-size: 30px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+  .ccard .cn { font-size: 12.5px; font-weight: 700; color: #dce8ff; margin-top: 6px; }
+
+  #info-card {
+    position: absolute; left: 38px; bottom: 34px; width: 340px; pointer-events: auto;
+    background: rgba(16,28,56,0.7); backdrop-filter: blur(12px);
+    border: 1px solid rgba(120,180,255,0.22); border-radius: 20px; padding: 20px 24px;
+    box-shadow: 0 12px 34px rgba(0,0,0,0.4);
+  }
+  #info-name { font-size: 25px; font-weight: 800; }
+  #info-name .en { font-size: 13px; font-weight: 500; color: #8fb4e0; margin-left: 8px; }
+  #info-intro { margin-top: 8px; font-size: 14px; line-height: 1.55; color: #b8c8e4; min-height: 42px; }
+  #enter-btn {
+    margin-top: 14px; width: 100%; border: none; cursor: pointer;
+    background: linear-gradient(120deg, #4fc3ff, #7b7bff); color: #fff;
+    font-size: 17px; font-weight: 800; letter-spacing: 4px; padding: 13px 0; border-radius: 14px;
+    box-shadow: 0 6px 20px rgba(80,140,255,0.5); font-family: inherit;
+    transition: transform .14s ease, box-shadow .14s ease;
+  }
+  #enter-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(80,140,255,0.6); }
+
+  /* HUD */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+  #zone-chip {
+    position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(16,28,56,0.75); padding: 8px 24px; border-radius: 999px;
+    font-size: 15px; font-weight: 700; border: 1px solid rgba(120,180,255,0.25);
+  }
+  #controls-hint {
+    position: absolute; left: 20px; bottom: 18px;
+    background: rgba(16,28,56,0.7); padding: 9px 16px; border-radius: 12px;
+    font-size: 12.5px; line-height: 1.6; color: #cdd8ee;
+  }
+  #controls-hint b { color: #7ee6ff; }
+  #interact-hint {
+    position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(120deg, #4fc3ff, #7b7bff); color: #fff;
+    padding: 10px 22px; border-radius: 999px; font-size: 15px; font-weight: 700;
+    box-shadow: 0 6px 18px rgba(80,140,255,0.5); animation: bob 1.2s ease-in-out infinite;
+  }
+  #interact-hint .key { background: #fff; color: #4a7bd0; border-radius: 7px; padding: 1px 9px; margin-right: 8px; font-weight: 800; }
+  @keyframes bob { 0%,100% { transform: translate(-50%,0); } 50% { transform: translate(-50%,-5px); } }
+  #dialogue {
+    position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+    width: min(640px, 90vw); pointer-events: auto;
+    background: rgba(16,28,56,0.92); backdrop-filter: blur(10px);
+    border-radius: 20px; padding: 18px 26px 14px; border: 1px solid rgba(120,180,255,0.3);
+    box-shadow: 0 14px 40px rgba(0,0,0,0.5);
+  }
+  #dlg-name { font-size: 15px; font-weight: 800; color: #7ee6ff; }
+  #dlg-name .role { font-size: 12px; color: #9fb4d8; font-weight: 600; margin-left: 8px; }
+  #dlg-text { margin-top: 10px; font-size: 16px; line-height: 1.65; min-height: 48px; }
+  #dlg-next { text-align: right; font-size: 12px; color: #8fa8cc; margin-top: 4px; }
+  #dlg-next .key { background: #2a4478; border-radius: 5px; padding: 0 6px; font-weight: 700; }
+  #toast {
+    position: absolute; top: 84px; left: 50%; transform: translateX(-50%);
+    background: rgba(16,28,56,0.85); padding: 12px 34px; border-radius: 999px;
+    font-size: 19px; font-weight: 800; opacity: 0; transition: opacity .35s ease, top .35s ease;
+    border: 1px solid rgba(120,180,255,0.3);
+  }
+  #toast.show { opacity: 1; top: 96px; }
+  #toast .sub { display: block; font-size: 12px; font-weight: 500; opacity: 0.8; text-align: center; margin-top: 2px; }
+  #loading {
+    position: fixed; inset: 0; z-index: 50; background: #0d1830;
+    display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+    color: #7ee6ff; font-weight: 700; transition: opacity .4s ease;
+  }
+  #loading .spin { width: 42px; height: 42px; border-radius: 50%; border: 5px solid #223a66; border-top-color: #7ee6ff; animation: spin .9s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="labels"></div>
+
+<div id="loading"><div class="spin"></div>토이 아일랜드를 빚는 중…</div>
+
+<div id="select" class="hidden">
+  <div id="sel-title">
+    <h1>ANIMALVERSE</h1>
+    <p>토이 아일랜드 (Babylon.js) · 반짝이는 동물을 골라 주세요</p>
+  </div>
+  <div id="char-panel">
+    <h2>동물 친구 20종</h2>
+    <div id="char-grid"></div>
+  </div>
+  <div id="info-card">
+    <div id="info-name"></div>
+    <div id="info-intro"></div>
+    <button id="enter-btn">입 장</button>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div id="zone-chip">섬 어딘가</div>
+  <div id="controls-hint">이동 <b>WASD / 방향키</b><br>대화 <b>E</b></div>
+  <div id="interact-hint" class="hidden"><span class="key">E</span><span id="interact-text">대화</span></div>
+  <div id="dialogue" class="hidden">
+    <div id="dlg-name"></div>
+    <div id="dlg-text"></div>
+    <div id="dlg-next"><span class="key">E</span> 다음</div>
+  </div>
+  <div id="toast"></div>
+</div>
+
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="../../shared/characters.js"></script>
+<script src="../../shared/npcs.js"></script>
+<script src="js/animals.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

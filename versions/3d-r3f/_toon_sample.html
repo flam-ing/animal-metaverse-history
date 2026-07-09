@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>셀셰이딩 비교 샘플</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif; background:#1d1626; color:#fff; }
+  .wrap { display:flex; width:100vw; height:100vh; }
+  .pane { position:relative; flex:1; }
+  .pane + .pane { border-left:3px solid #1d1626; }
+  .pane canvas { display:block; width:100%; height:100%; }
+  .tag {
+    position:absolute; left:50%; bottom:26px; transform:translateX(-50%);
+    background:#1d1626dd; padding:10px 22px; border-radius:999px;
+    font-size:1.05rem; font-weight:700; white-space:nowrap;
+  }
+  .tag small { display:block; font-weight:400; font-size:.78rem; color:#c9bcd4; text-align:center; margin-top:2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="pane" id="paneA">
+    <div class="tag">지금 버전 (Lambert)<small>부드러운 연속 그라데이션 음영</small></div>
+  </div>
+  <div class="pane" id="paneB">
+    <div class="tag">셀셰이딩 (Toon + 잉크 외곽선)<small>3단 계단식 음영 + 검은 테두리</small></div>
+  </div>
+</div>
+
+<script src="../../shared/characters.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { buildAnimal, animateRig } from '../3d/js/animals.js';
+
+const DEFS = ['flamingo', 'fox', 'panda'].map(id => window.AV_CHARACTERS.find(c => c.id === id));
+
+// 3단 계단 음영용 그라디언트 맵
+const gmap = new THREE.DataTexture(new Uint8Array([70, 70, 160, 160, 255, 255]), 6, 1, THREE.RedFormat);
+gmap.needsUpdate = true; gmap.minFilter = gmap.magFilter = THREE.NearestFilter;
+const OUTLINE = new THREE.MeshBasicMaterial({ color: 0x2b2030, side: THREE.BackSide });
+
+function toonify(group) {
+  const shells = [];
+  group.traverse(o => {
+    if (!o.isMesh) return;
+    o.material = new THREE.MeshToonMaterial({ color: o.material.color, gradientMap: gmap });
+    o.geometry.computeBoundingSphere();
+    if (o.geometry.boundingSphere.radius < 0.055) return; // 눈알 등 초소형은 외곽선 생략
+    const shell = new THREE.Mesh(o.geometry, OUTLINE);
+    // 작은 부위일수록 상대 스케일을 키워 선 굵기를 비슷하게 유지
+    const r = o.geometry.boundingSphere.radius;
+    shell.scale.setScalar(1 + Math.min(0.028 / r, 0.16));
+    shells.push([o, shell]);
+  });
+  for (const [o, shell] of shells) o.add(shell);
+}
+
+function makePane(el, toon) {
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  el.prepend(renderer.domElement);
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color('#ffd9b8');
+  const cam = new THREE.PerspectiveCamera(36, 1, 0.1, 50);
+  cam.position.set(0, 1.8, 6.6); cam.lookAt(0, 0.95, 0);
+
+  scene.add(new THREE.HemisphereLight('#fff2df', '#b98ca0', 0.75));
+  const sun = new THREE.DirectionalLight('#ffffff', 1.35);
+  sun.position.set(3, 5, 2.5); scene.add(sun);
+
+  const ground = new THREE.Mesh(
+    new THREE.CylinderGeometry(3.4, 3.4, 0.25, 28),
+    new THREE.MeshLambertMaterial({ color: '#8fce7a' })
+  );
+  ground.position.y = -0.125; scene.add(ground);
+
+  const rigs = DEFS.map((def, i) => {
+    const rig = buildAnimal(def);
+    rig.group.position.x = (i - 1) * 1.5;
+    rig.group.rotation.y = 0.42; // 카메라를 향한 3/4 고정 포즈
+    if (toon) toonify(rig.group);
+    scene.add(rig.group);
+    return rig;
+  });
+  if (toon) ground.material = new THREE.MeshToonMaterial({ color: ground.material.color, gradientMap: gmap });
+
+  function resize() {
+    const w = el.clientWidth, h = el.clientHeight;
+    renderer.setSize(w, h, false);
+    cam.aspect = w / h; cam.updateProjectionMatrix();
+  }
+  resize(); addEventListener('resize', resize);
+
+  return { renderer, scene, cam, rigs };
+}
+
+const A = makePane(document.getElementById('paneA'), false);
+const B = makePane(document.getElementById('paneB'), true);
+
+let t = 0;
+function loop() {
+  requestAnimationFrame(loop);
+  t += 1 / 60;
+  for (const p of [A, B]) {
+    for (const rig of p.rigs) animateRig(rig, t, 0.12);
+    p.renderer.render(p.scene, p.cam);
+  }
+}
+loop();
+console.log('[toon-sample] ready');
+</script>
+</body>
+</html>
