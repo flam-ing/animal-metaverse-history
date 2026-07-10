@@ -262,6 +262,12 @@ function makeEntity(def, isPlayer) {
   return rig;
 }
 
+// 카메라 기준 이동을 위한 재사용 임시 벡터 (프레임마다 새로 할당하지 않음)
+const _fwd = new THREE.Vector3();
+const _right = new THREE.Vector3();
+const _up = new THREE.Vector3(0, 1, 0);
+const _moveDir = new THREE.Vector3();
+
 function GameWorld({ selectedDef, onZone, onNear }) {
   const { camera } = useThree();
   const state = useMemo(() => {
@@ -297,19 +303,24 @@ function GameWorld({ selectedDef, onZone, onNear }) {
     const { player, npcs, visitors } = state;
     const dlgOpen = window.__avDialogOpen;
 
-    let mx = 0, mz = 0;
+    let f = 0, r = 0;
     if (!dlgOpen) {
-      if (keys['w'] || keys['arrowup']) mz -= 1;
-      if (keys['s'] || keys['arrowdown']) mz += 1;
-      if (keys['a'] || keys['arrowleft']) mx -= 1;
-      if (keys['d'] || keys['arrowright']) mx += 1;
+      if (keys['w'] || keys['arrowup']) f += 1;
+      if (keys['s'] || keys['arrowdown']) f -= 1;
+      if (keys['a'] || keys['arrowleft']) r -= 1;
+      if (keys['d'] || keys['arrowright']) r += 1;
     }
-    const mag = Math.hypot(mx, mz); let speed = 0;
-    if (mag > 0) {
-      mx /= mag; mz /= mag; speed = 1;
-      const nx = player.group.position.x + mx * 6 * dt, nz = player.group.position.z + mz * 6 * dt;
+    // 카메라 정면(XZ 평면)과 오른쪽 벡터
+    camera.getWorldDirection(_fwd); _fwd.y = 0; _fwd.normalize();
+    // right = cross(fwd, up): fwd=(0,0,-1)일 때 (0,0,-1)x(0,1,0) = (1,0,0) = +X = 화면상 오른쪽 → negate 불필요
+    _right.crossVectors(_fwd, _up);
+    _moveDir.set(0, 0, 0).addScaledVector(_fwd, f).addScaledVector(_right, r);
+    const mag = _moveDir.length(); let speed = 0;
+    if (mag > 0.0001) {
+      _moveDir.normalize(); speed = 1;
+      const nx = player.group.position.x + _moveDir.x * 6 * dt, nz = player.group.position.z + _moveDir.z * 6 * dt;
       if (Math.hypot(nx, nz) < ISLAND_R - 2) { player.group.position.x = nx; player.group.position.z = nz; }
-      player.heading = Math.atan2(mx, mz);
+      player.heading = Math.atan2(_moveDir.x, _moveDir.z);
     }
     player.group.rotation.y += angleDelta(player.group.rotation.y, player.heading) * 0.2;
     animateRig(player, t, speed);

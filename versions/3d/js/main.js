@@ -424,24 +424,29 @@ function animateWorldProps(t) {
 }
 
 function updateWorld(dt, t) {
-  // 플레이어 이동
-  let mx = 0, mz = 0;
+  // 플레이어 이동 (카메라 기준 상대 이동)
+  let f = 0, r = 0;
   if (!dlg.open) {
-    if (keys['w'] || keys['arrowup']) mz -= 1;
-    if (keys['s'] || keys['arrowdown']) mz += 1;
-    if (keys['a'] || keys['arrowleft']) mx -= 1;
-    if (keys['d'] || keys['arrowright']) mx += 1;
+    if (keys['w'] || keys['arrowup']) f += 1;
+    if (keys['s'] || keys['arrowdown']) f -= 1;
+    if (keys['a'] || keys['arrowleft']) r -= 1;
+    if (keys['d'] || keys['arrowright']) r += 1;
   }
-  const mag = Math.hypot(mx, mz);
+  // 카메라 정면(XZ 평면)과 오른쪽 벡터
+  const fwd = new THREE.Vector3(); camera.getWorldDirection(fwd); fwd.y = 0; fwd.normalize();
+  // right = cross(fwd, up): fwd=(0,0,-1)일 때 (0,0,-1)x(0,1,0) = (1,0,0) = +X = 화면상 오른쪽 → negate 불필요
+  const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0));
+  const moveDir = new THREE.Vector3().addScaledVector(fwd, f).addScaledVector(right, r);
+  const mag = moveDir.length();
   let speed = 0;
-  if (mag > 0) {
-    mx /= mag; mz /= mag; speed = 1;
-    const nx = player.group.position.x + mx * 6 * dt;
-    const nz = player.group.position.z + mz * 6 * dt;
+  if (mag > 0.0001) {
+    moveDir.normalize(); speed = 1;
+    const nx = player.group.position.x + moveDir.x * 6 * dt;
+    const nz = player.group.position.z + moveDir.z * 6 * dt;
     if (Math.hypot(nx, nz) < ISLAND_R - 2) {
       player.group.position.x = nx; player.group.position.z = nz;
     }
-    player.heading = Math.atan2(mx, mz);
+    player.heading = Math.atan2(moveDir.x, moveDir.z);
   }
   player.group.rotation.y += angleDelta(player.group.rotation.y, player.heading) * 0.2;
   animateRig(player, t, speed);

@@ -321,19 +321,24 @@
   }
 
   function updateWorld(dt, t) {
-    var mx = 0, mz = 0;
+    var f = 0, r = 0;
     if (!dlg.open) {
-      if (keys['w'] || keys['arrowup']) mz += 1;
-      if (keys['s'] || keys['arrowdown']) mz -= 1;
-      if (keys['a'] || keys['arrowleft']) mx -= 1;
-      if (keys['d'] || keys['arrowright']) mx += 1;
+      if (keys['w'] || keys['arrowup']) f += 1;
+      if (keys['s'] || keys['arrowdown']) f -= 1;
+      if (keys['a'] || keys['arrowleft']) r -= 1;
+      if (keys['d'] || keys['arrowright']) r += 1;
     }
-    var mag = Math.hypot(mx, mz), speed = 0;
-    if (mag > 0) {
-      mx /= mag; mz /= mag; speed = 1;
-      var nx = player.root.position.x + mx * 6 * dt, nz = player.root.position.z + mz * 6 * dt;
+    // 카메라 정면(XZ 평면)과 오른쪽 벡터 (Babylon은 왼손 좌표계)
+    var fwd = camera.getTarget().subtract(camera.position); fwd.y = 0; fwd.normalize();
+    // right = Cross(Up, fwd): fwd=(0,0,1)일 때 Cross((0,1,0),(0,0,1)) = (1,0,0) = +X = 화면상 오른쪽
+    var right = B.Vector3.Cross(B.Vector3.Up(), fwd);
+    var moveDir = fwd.scale(f).add(right.scale(r));
+    var mag = moveDir.length(), speed = 0;
+    if (mag > 0.0001) {
+      moveDir.normalize(); speed = 1;
+      var nx = player.root.position.x + moveDir.x * 6 * dt, nz = player.root.position.z + moveDir.z * 6 * dt;
       if (Math.hypot(nx, nz) < ISLAND_R - 2) { player.root.position.x = nx; player.root.position.z = nz; }
-      player.heading = Math.atan2(mx, mz);
+      player.heading = Math.atan2(moveDir.x, moveDir.z);
     }
     player.root.rotation.y += angleDelta(player.root.rotation.y, player.heading) * 0.2;
     A.animate(player, t, speed);
