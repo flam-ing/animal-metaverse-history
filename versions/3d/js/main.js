@@ -22,10 +22,15 @@ let mode = 'select'; // 'select' | 'world'
 let player = null;
 const npcs = [];
 const visitors = [];
-const keys = {};
+const input = window.AVInput.create(interact);
+const keys = input.keys;
 let curZone = null, nearNpc = null;
 let selectedDef = null, stageRig = null, stageSpin = 0;
+let stageHeight = 4;
 const dlg = { open: false, npc: null, i: 0 };
+if (new URLSearchParams(location.search).has('debug')) {
+  window.__avDebug = { state: () => ({ mode, player:player ? {x:player.group.position.x,z:player.group.position.z} : null, npcs:npcs.map(n => ({x:n.group.position.x,z:n.group.position.z})), keys:{...keys} }) };
+}
 
 // ─────────────────────────────────────────
 function init() {
@@ -57,7 +62,6 @@ function init() {
   buildWorld();
   buildStage();
   buildSelectUI();
-  bindInput();
 
   window.addEventListener('resize', onResize);
 
@@ -235,11 +239,13 @@ function buildStage() {
   setStageAnimal(CHARS[0]);
 }
 function setStageAnimal(def) {
-  if (stageRig) stageGroup.remove(stageRig.group);
+  if (stageRig) { stageGroup.remove(stageRig.group); disposeAnimalGeometry(stageRig.group); }
   stageRig = buildAnimal(def);
   stageRig.group.position.y = 0.75;
   stageRig.group.scale.setScalar(1.4);
   stageGroup.add(stageRig.group);
+  const bounds = new THREE.Box3().setFromObject(stageGroup);
+  stageHeight = bounds.max.y - bounds.min.y;
   selectedDef = def;
 }
 
@@ -247,7 +253,9 @@ function setStageAnimal(def) {
 function buildSelectUI() {
   const grid = document.getElementById('char-grid');
   CHARS.forEach((def) => {
-    const card = document.createElement('div');
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.setAttribute('aria-label', def.ko);
     card.className = 'char-card';
     card.innerHTML = `<img alt="${def.ko}" src="${thumb(def)}"><div class="cname">${def.ko}</div><div class="cemoji">${def.emoji || ''}</div>`;
     card.addEventListener('click', () => {
@@ -286,12 +294,23 @@ function thumb(def) {
   const url = renderer.domElement.toDataURL('image/png');
   renderer.setSize(prevSize.x, prevSize.y, false);
   thumbScene.remove(rig.group);
+  disposeAnimalGeometry(rig.group);
   return url;
+}
+function disposeAnimalGeometry(group) {
+  const geometries = new Set();
+  group.traverse(object => { if (object.geometry) geometries.add(object.geometry); });
+  geometries.forEach(geometry => geometry.dispose());
+  // Materials are cached by animals.js; keep them for the next animal.
 }
 
 // ── 월드 진입 ─────────────────────────────
 function enterWorld() {
+  if (mode === 'world') return;
   mode = 'world';
+  input.setEnabled(true);
+  camera.position.set(0, 6, 14);
+  camera.lookAt(0, 1.4, 5);
   document.getElementById('select-screen').classList.add('hidden');
   document.getElementById('hud').classList.remove('hidden');
   stageGroup.visible = false;
@@ -344,15 +363,6 @@ function pickWander() {
 }
 
 // ── 입력 ───────────────────────────────────
-function bindInput() {
-  window.addEventListener('keydown', (e) => {
-    const k = e.key.toLowerCase();
-    keys[k] = true;
-    if (k === 'e') { e.preventDefault(); interact(); }
-    if (k.indexOf('arrow') === 0) e.preventDefault();
-  });
-  window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
-}
 function interact() {
   if (mode !== 'world') return;
   if (dlg.open) {
@@ -392,8 +402,11 @@ function frame() {
     stageSpin += dt * 0.7;
     stageGroup.rotation.y = stageSpin;
     if (stageRig) animateRig(stageRig, t, 0);
-    camera.position.lerp(new THREE.Vector3(0, 2.2, 6.5), 0.08);
-    camera.lookAt(0, 1.2, 0);
+    const mobile = window.innerWidth <= 760;
+    const center = stageHeight / 2;
+    const distance = Math.max(6.5, stageHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (mobile ? 0.24 : 0.72)));
+    camera.position.lerp(new THREE.Vector3(0, center + 0.8, distance), 0.15);
+    camera.lookAt(0, center, 0);
   } else {
     updateWorld(dt, t);
   }
@@ -452,16 +465,17 @@ function updateWorld(dt, t) {
   animateRig(player, t, speed);
   keepLabelFacing(player.label);
 
-  // 카메라 3인칭 추적
+  // Follow position with a fixed azimuth: steering the animal must not rotate
+  // the input frame underneath a held sideways/backwards key.
   const px = player.group.position.x, pz = player.group.position.z;
   const camDist = 9, camH = 6;
   const desired = new THREE.Vector3(
-    px - Math.sin(player.heading) * camDist,
+    px,
     camH,
-    pz - Math.cos(player.heading) * camDist
+    pz + camDist
   );
   camera.position.lerp(desired, 0.07);
-  camera.lookAt(px, 1.4, pz);
+  camera.lookAt(camera.position.x, 1.4, camera.position.z - camDist);
 
   // 존 토스트
   const nz2 = nearestZone(px, pz);
@@ -521,6 +535,7 @@ function angleDelta(from, to) {
 let toastTimer = null;
 function showToast(zid) {
   const z = ZONES[zid]; if (!z) return;
+  document.getElementById('zone-chip').textContent = z.ko;
   const el = document.getElementById('toast');
   el.innerHTML = `${z.ko}<span class="sub">${z.hint || ''}</span>`;
   el.classList.add('show');

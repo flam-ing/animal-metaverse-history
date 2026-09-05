@@ -32,10 +32,14 @@
   var glow = new B.GlowLayer('glow', scene); glow.intensity = 0.32;
 
   var mode = 'select';
-  var player = null, npcs = [], visitors = [], keys = {};
+  var input = window.AVInput.create(interact);
+  var player = null, npcs = [], visitors = [], keys = input.keys;
   var curZone = null, nearNpc = null;
   var selectedDef = null, stageRoot = null, stageRig = null, stageSpin = 0;
   var dlg = { open: false, npc: null, i: 0 };
+  if (new URLSearchParams(location.search).has('debug')) {
+    window.__avDebug = { state: function () { return { mode:mode, player:player ? {x:player.root.position.x,z:player.root.position.z} : null, npcs:npcs.map(function(n){ return {x:n.root.position.x,z:n.root.position.z}; }), keys:Object.assign({},keys) }; } };
+  }
   var worldRoot = new B.TransformNode('world', scene); worldRoot.setEnabled(false);
   var animProps = { fountain: [], steam: [] };
   var labelPool = [];
@@ -177,7 +181,8 @@
     setStageAnimal(CHARS[0]);
   }
   function setStageAnimal(def) {
-    if (stageRig) stageRig.root.dispose(false, true);
+    // Materials belong to the shared cache and are also used by the island.
+    if (stageRig) stageRig.root.dispose(false, false);
     stageRig = A.build(scene, def);
     stageRig.root.parent = stageRoot;
     stageRig.root.position.y = 0.5; stageRig.root.scaling.setAll(1.4);
@@ -188,7 +193,8 @@
   function buildSelectUI() {
     var grid = document.getElementById('char-grid');
     CHARS.forEach(function (def) {
-      var card = document.createElement('div');
+      var card = document.createElement('button');
+      card.type = 'button'; card.setAttribute('aria-label', def.ko);
       card.className = 'ccard';
       card.innerHTML = '<div class="ce">' + (def.emoji || '🐾') + '</div><div class="cn">' + def.ko + '</div>';
       card.addEventListener('click', function () {
@@ -211,7 +217,11 @@
   }
 
   function enterWorld() {
+    if (mode === 'world') return;
     mode = 'world';
+    input.setEnabled(true);
+    camera.position.set(0, 6, 14);
+    camera.setTarget(new B.Vector3(0, 1.4, 5));
     document.getElementById('select').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     stageRoot.setEnabled(false);
@@ -247,12 +257,6 @@
 
   // ── 입력 / 대화 ───────────────────────
   function bindInput() {
-    window.addEventListener('keydown', function (e) {
-      var k = e.key.toLowerCase(); keys[k] = true;
-      if (k === 'e') { e.preventDefault(); interact(); }
-      if (k.indexOf('arrow') === 0) e.preventDefault();
-    });
-    window.addEventListener('keyup', function (e) { keys[e.key.toLowerCase()] = false; });
     window.addEventListener('resize', function () { engine.resize(); });
   }
   function interact() {
@@ -282,8 +286,9 @@
       camera.viewport.toGlobal(engine.getRenderWidth(), engine.getRenderHeight()));
     if (p.z > 1 || p.z < 0) { el.style.display = 'none'; return; }
     el.style.display = 'block';
-    el.style.left = (p.x / (window.devicePixelRatio || 1)) + 'px';
-    el.style.top = (p.y / (window.devicePixelRatio || 1)) + 'px';
+    var rect = canvas.getBoundingClientRect();
+    el.style.left = (rect.left + p.x * rect.width / engine.getRenderWidth()) + 'px';
+    el.style.top = (rect.top + p.y * rect.height / engine.getRenderHeight()) + 'px';
   }
 
   function angleDelta(from, to) { var d = (to - from) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }
@@ -299,8 +304,9 @@
       if (stageRig) A.animate(stageRig, t, 0);
       // 동물 키(labelY)에 맞춰 카메라를 물려 잡음 — 키다리도 프레임 안에
       var h = ((stageRig && stageRig.labelY) || 1.5) * 1.4 + 0.5;
-      camera.position = B.Vector3.Lerp(camera.position, new B.Vector3(0, 0.9 + h * 0.5, -(4.4 + h * 1.35)), 0.08);
-      camera.setTarget(new B.Vector3(0, h * 0.42, 0));
+      var distance = Math.max(4.4 + h * 1.35, h / (2 * Math.tan(camera.fov / 2) * (window.innerWidth <= 760 ? 0.24 : 0.72)));
+      camera.position = B.Vector3.Lerp(camera.position, new B.Vector3(0, 0.8 + h * 0.5, -distance), 0.15);
+      camera.setTarget(new B.Vector3(0, h * 0.5, 0));
     } else if (player) {
       updateWorld(dt, t);
     }
@@ -346,9 +352,9 @@
 
     var px = player.root.position.x, pz = player.root.position.z;
     // 3인칭 추적 카메라
-    var desired = new B.Vector3(px - Math.sin(player.heading) * 9, 6, pz - Math.cos(player.heading) * 9);
+    var desired = new B.Vector3(px, 6, pz + 9);
     camera.position = B.Vector3.Lerp(camera.position, desired, 0.07);
-    camera.setTarget(new B.Vector3(px, 1.4, pz));
+    camera.setTarget(new B.Vector3(camera.position.x, 1.4, camera.position.z - 9));
 
     var nz2 = nearestZone(px, pz); var inZone = nz2.d < nz2.r ? nz2.id : null;
     if (inZone && inZone !== curZone) { curZone = inZone; showToast(inZone); }
@@ -382,6 +388,7 @@
   var toastTimer = null;
   function showToast(zid) {
     var z = ZONES[zid]; if (!z) return;
+    document.getElementById('zone-chip').textContent = z.ko;
     var el = document.getElementById('toast');
     el.innerHTML = z.ko + '<span class="sub">' + (z.hint || '') + '</span>';
     el.classList.add('show'); clearTimeout(toastTimer);
