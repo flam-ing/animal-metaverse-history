@@ -57,13 +57,8 @@ function Outlined({ children }) {
   return <group ref={ref}>{children}</group>;
 }
 
-const keys = {};
-window.addEventListener('keydown', (e) => {
-  const k = e.key.toLowerCase(); keys[k] = true;
-  if (k === 'e') { e.preventDefault(); window.dispatchEvent(new CustomEvent('av-interact')); }
-  if (k.indexOf('arrow') === 0) e.preventDefault();
-});
-window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+const input = window.AVInput.create(() => window.dispatchEvent(new CustomEvent('av-interact')));
+const keys = input.keys;
 
 function nearestZone(x, z) {
   let best = null, bd = 1e9;
@@ -296,6 +291,15 @@ function GameWorld({ selectedDef, onZone, onNear }) {
   }, [selectedDef]);
 
   const curZone = useRef(null);
+  useEffect(() => {
+    if (!new URLSearchParams(location.search).has('debug')) return;
+    window.__avDebug = { state: () => ({ mode:'world', player:{x:state.player.group.position.x,z:state.player.group.position.z}, npcs:state.npcs.map(n => ({x:n.group.position.x,z:n.group.position.z})), keys:{...keys} }) };
+    return () => { delete window.__avDebug; };
+  }, [state]);
+  useEffect(() => {
+    camera.position.set(0, 6, 14);
+    camera.lookAt(0, 1.4, 5);
+  }, [camera]);
 
   useFrame(({ clock }, dt) => {
     dt = Math.min(0.05, dt);
@@ -326,9 +330,9 @@ function GameWorld({ selectedDef, onZone, onNear }) {
     animateRig(player, t, speed);
 
     const px = player.group.position.x, pz = player.group.position.z;
-    const desired = new THREE.Vector3(px - Math.sin(player.heading) * 9, 6, pz - Math.cos(player.heading) * 9);
+    const desired = new THREE.Vector3(px, 6, pz + 9);
     camera.position.lerp(desired, 0.07);
-    camera.lookAt(px, 1.4, pz);
+    camera.lookAt(camera.position.x, 1.4, camera.position.z - 9);
 
     const nz2 = nearestZone(px, pz); const inZone = nz2.d < nz2.r ? nz2.id : null;
     if (inZone && inZone !== curZone.current) { curZone.current = inZone; onZone(inZone); }
@@ -371,12 +375,28 @@ function Turntable({ def }) {
   const { camera } = useThree();
   const grp = useRef();
   const rig = useMemo(() => { const r = buildAnimal(def); toonify(r.group); return r; }, [def]);
+  const stageHeight = useMemo(() => {
+    const bounds = new THREE.Box3().setFromObject(rig.group);
+    return (bounds.max.y - Math.min(0, bounds.min.y)) * 1.4 + 0.75;
+  }, [rig]);
+  useEffect(() => () => {
+    const geometries = new Set(), materials = new Set();
+    rig.group.traverse(object => {
+      if (object.geometry) geometries.add(object.geometry);
+      if (object.material && object.material !== OUTLINE_MAT) materials.add(object.material);
+    });
+    geometries.forEach(geometry => geometry.dispose());
+    materials.forEach(material => material.dispose());
+    // GMAP and OUTLINE_MAT are shared by every character and the world.
+  }, [rig]);
   useFrame(({ clock }, dt) => {
     const t = clock.elapsedTime;
     if (grp.current) grp.current.rotation.y += dt * 0.7;
     animateRig(rig, t, 0);
-    camera.position.lerp(new THREE.Vector3(0, 2.4, 7), 0.08);
-    camera.lookAt(0, 1.2, 0);
+    const center = stageHeight / 2;
+    const distance = Math.max(7, stageHeight / (2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (window.innerWidth <= 760 ? 0.24 : 0.72)));
+    camera.position.lerp(new THREE.Vector3(0, center + 0.8, distance), 0.15);
+    camera.lookAt(0, center, 0);
   });
   return (
     <group>
@@ -438,7 +458,7 @@ function App() {
     if (l) { l.style.opacity = '0'; setTimeout(() => l.classList.add('hidden'), 420); }
   }, []);
 
-  const enter = () => { setSelectedDef(stageDef); setScreen('world'); };
+  const enter = () => { input.setEnabled(true); setSelectedDef(stageDef); setScreen('world'); };
 
   return (
     <>
@@ -457,9 +477,9 @@ function App() {
             <h2>동물 친구 20종</h2>
             <div id="char-grid">
               {CHARS.map((def) => (
-                <div key={def.id} className={'ccard' + (def.id === stageDef.id ? ' sel' : '')} onClick={() => setStageDef(def)}>
+                <button type="button" aria-label={def.ko} key={def.id} className={'ccard' + (def.id === stageDef.id ? ' sel' : '')} onClick={() => setStageDef(def)}>
                   <div className="ce">{def.emoji || '🐾'}</div><div className="cn">{def.ko}</div>
-                </div>
+                </button>
               ))}
             </div>
           </div>
