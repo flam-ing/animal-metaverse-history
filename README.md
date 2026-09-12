@@ -1,5 +1,7 @@
 # 🐾 ANIMALVERSE — 동물 메타버스
 
+[![CHOOSE WORLD](https://img.shields.io/badge/CHOOSE%20WORLD-GitHub%20Pages-4caf50?style=for-the-badge&logo=githubpages&logoColor=white)](https://minwoo19930301.github.io/animal-metaverse/) [![SOURCE CODE](https://img.shields.io/badge/SOURCE%20CODE-minwoo19930301-e7322d?style=for-the-badge&logo=github&logoColor=white)](https://github.com/minwoo19930301/animal-metaverse)
+
 <!-- PROJECT-LINKS:START -->
 ## 3D Playground
 
